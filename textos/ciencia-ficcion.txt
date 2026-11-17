@@ -1,0 +1,59 @@
+EL MENSAJE DE LAS 03:14
+
+A las 03:14, la estación Nereida recibió un mensaje de sí misma. No era una copia de seguridad ni una retransmisión: el archivo llevaba la fecha del día siguiente y la firma digital de la ingeniera Érika Salcedo. Incluía una imagen borrosa y una advertencia de 512 bytes (con su firma de seguridad): NO ABRÁIS LA COMPUERTA NÚMERO 9.
+
+Érika lo leyó 3 veces antes de despertar a Óscar, el responsable de comunicaciones. En el exterior, bajo casi 2 kilómetros de hielo de Europa, los reflectores iluminaban partículas que descendían lentamente hacia un océano sin fondo visible. La expedición llevaba 87 días allí. Hasta aquella noche, su descubrimiento más extraordinario había sido una bacteria que sobrevivía dentro de una válvula caliente.
+
+-Alguien está usando tus credenciales -dijo Óscar.
+
+-Mis credenciales están en un dispositivo que llevo al cuello.
+
+-Entonces alguien está usando tu sentido del humor.
+
+Abrieron el registro de operaciones. La compuerta 9 debía recibir una sonda a las 11:40. La maniobra estaba programada desde hacía 2 semanas y no figuraba en los mensajes enviados a la Tierra. Érika comprobó los sensores: presión estable, temperatura normal, batería al 76%. Todo parecía correcto, salvo la fecha de aquel archivo.
+
+La imagen mostraba el pasillo central inundado. En una esquina flotaba un guante rojo. Érika miró sus manos: usaba guantes grises. Casi se rio de su propio alivio.
+
+El segundo mensaje llegó a las 04:02.
+
+"7/12 sensores funcionan. Los otros 5 repiten datos antiguos. Comprobad el desfase: 37 segundos".
+
+Óscar desconectó la lectura automática y envió una orden individual a cada sensor. Cinco respondieron antes de recibirla. Él dejó de hacer bromas.
+
+Durante el desayuno, la comandante reunió a los 12 tripulantes. Cancelar la maniobra significaba perder la sonda y sus muestras, recogidas durante 19 jornadas. Aceptar una advertencia imposible tampoco resultaba sencillo. El médico preguntó si podía tratarse de una simulación. La geóloga pidió ver los datos sin procesar. Érika solo quería que alguien más decidiera.
+
+-¿Qué harías si ese mensaje lo hubiera enviado una persona? -preguntó la comandante.
+
+-Revisaría la compuerta.
+
+-Pues empieza por ahí.
+
+El túnel de mantenimiento era demasiado estrecho para entrar con herramientas grandes. Érika tuvo que quitarse la chaqueta y pedir unos guantes más finos. El único par disponible era rojo.
+
+Se quedó mirándolo unos segundos.
+
+-Puedo buscar otros -dijo Óscar.
+
+-No. Dame la linterna.
+
+Detrás del panel encontró una grieta de 8 centímetros. El aislamiento ocultaba una deformación en el cierre exterior. Cuando llegara la sonda, el sistema abriría ambas puertas: una recibiría el vehículo; la otra, según sus sensores, estaría cerrada. El océano entraría sin encontrar resistencia.
+
+Érika intentó cancelar la secuencia. En la pantalla apareció ACCESO DENEGADO. La programación central había clasificado los mensajes como una intrusión y bloqueado cualquier cambio remoto. Quedaban 14 minutos.
+
+-Hay una palanca manual -dijo Óscar por el comunicador.
+
+-La estoy viendo. También veo que falta la mitad.
+
+Usaron una barra de la cocina, 2 abrazaderas y el mango de una llave. El mecanismo cedió cuando faltaban 23 segundos.
+
+-¡Aparta la mano! -gritó Óscar.
+
+La estación tembló; una tubería se abrió sobre sus cabezas. Érika perdió un guante en el agua, pero la puerta exterior permaneció cerrada.
+
+A las 11:41, todos seguían vivos.
+
+Más tarde descubrieron que el transmisor experimental había enviado señales a través de una anomalía bajo el hielo. Nadie podía explicar por qué algunas regresaban antes de salir. La comandante prohibió volver a activarlo hasta comprenderlo.
+
+Érika redactó de todos modos una advertencia de 512 bytes y la guardó sin transmitir. Adjuntó una fotografía del pasillo durante la reparación. Allí estaba el guante rojo.
+
+Antes de apagar la consola, revisó la bandeja de entrada. No había mensajes nuevos. Por primera vez desde las 03:14, aquella ausencia le pareció una buena noticia.
