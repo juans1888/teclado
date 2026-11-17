@@ -1,0 +1,1330 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entrenador Toucan</title>
+<style>
+  :root {
+    --bg: #f4f3ef; --card: #ffffff; --text: #23221f; --muted: #77756d; --line: #d9d6cc;
+    --key: #ebe9e2; --accent: #5b4bd6; --accent-text: #ffffff; --hold: #e39a1c; --hold-text: #2b1c00;
+    --ok: #2e8b57; --bad: #d1483f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1b19; --card: #262624; --text: #ecebe6; --muted: #9c9a92; --line: #3d3c38;
+      --key: #33322f; --accent: #8f83f2; --accent-text: #14122b; --hold: #f0b040; --hold-text: #2b1c00;
+      --ok: #5fc98f; --bad: #f0746b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0 0 12px; }
+  .barra { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .barra label { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
+  select, button { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer; }
+  button.principal { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .barra .fin { margin-left: auto; display: flex; gap: 8px; align-items: flex-end; }
+  .tarjeta { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  #estado { font-size: 14px; color: var(--muted); min-height: 21px; margin-bottom: 8px; }
+  #estado.error { color: var(--bad); }
+  #texto { font: 28px/1.6 ui-monospace, Consolas, monospace; letter-spacing: 1px; word-break: break-all; min-height: 45px; }
+  #texto span { border-radius: 4px; padding: 0 1px; }
+  #texto .hecho { color: var(--ok); opacity: .55; }
+  #texto .actual { background: var(--accent); color: var(--accent-text); }
+  #texto .actual.fallo { background: var(--bad); color: #fff; }
+  #pista { margin-top: 8px; font-size: 15px; min-height: 24px; }
+  #pista kbd { font: inherit; font-weight: 600; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--key); }
+  #pista kbd.mantener { background: var(--hold); color: var(--hold-text); border-color: var(--hold); }
+  #pista kbd.pulsar { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  #pista .pulsaste { color: var(--bad); margin-left: 12px; }
+  #teclado { position: relative; margin: 0 auto; }
+  .tecla { position: absolute; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: var(--key); border: 1px solid var(--line); font-size: 15px; font-weight: 500; overflow: hidden; white-space: nowrap; }
+  .tecla.heredada { color: var(--muted); font-weight: 400; }
+  .tecla.pulsar { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .tecla.mantener { background: var(--hold); color: var(--hold-text); border-color: var(--hold); }
+  .tecla.fallo { background: var(--bad); color: #fff; border-color: var(--bad); }
+  #capa { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 10px; }
+  #capa button { font-size: 13px; padding: 3px 12px; border-radius: 999px; }
+  #capa button.vista { border-color: var(--accent); }
+  #capa button.activa { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+  .cifras { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; }
+  .cifras b { display: block; font-size: 24px; font-weight: 600; }
+  .cifras span { font-size: 13px; color: var(--muted); }
+  #debiles { margin-top: 12px; font-size: 14px; color: var(--muted); }
+  #debiles code { font: 14px ui-monospace, Consolas, monospace; background: var(--key); padding: 1px 6px; border-radius: 4px; margin-right: 6px; color: var(--text); }
+  .pie { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .pie button { font-size: 13px; }
+  h2 { font-size: 18px; font-weight: 600; margin: 0 0 4px; }
+  h3 { font-size: 16px; font-weight: 600; margin: 4px 0; }
+  .progreso { font-size: 13px; color: var(--muted); }
+  #asistente p { margin: 4px 0 14px; max-width: 70ch; }
+  #tecladoCfg { position: relative; margin: 0 auto; }
+  #tecladoCfg svg { position: absolute; inset: 0; overflow: visible; pointer-events: none; }
+  .mano { opacity: .3; }
+  .mano * { fill: var(--accent); stroke: var(--accent); stroke-linecap: round; }
+  .tecla.opcion { outline: 2px solid var(--accent); cursor: pointer; }
+  .tecla.cambio { border: 2px solid var(--accent); font-weight: 600; }
+  .opciones { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; max-width: 560px; }
+  .opciones button { text-align: left; padding: 10px 12px; }
+  .resumen { font-size: 17px; margin: 14px 0 8px; }
+  .resumen b { font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; color: var(--muted); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .notas { font-size: 14px; padding-left: 18px; margin: 8px 0; }
+  .notas li { margin-bottom: 4px; }
+  .modelo { font-size: 13px; color: var(--muted); }
+  @media (max-width: 560px) { #texto { font-size: 20px; } .tecla { font-size: 11px; border-radius: 5px; } .barra .fin { margin-left: 0; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Entrenador Toucan</h1>
+
+  <div class="barra">
+    <label>Lección
+      <select id="leccion"></select>
+    </label>
+    <label>Idioma del teclado en Windows
+      <select id="sistema">
+        <option value="us">Inglés (EE. UU. / internacional)</option>
+        <option value="latam">Español (Latinoamérica)</option>
+      </select>
+    </label>
+    <div class="fin">
+      <button id="config">Tu configuración</button>
+      <button id="ver">Ocultar teclado</button>
+      <button id="leer" class="principal">Leer mi teclado</button>
+    </div>
+  </div>
+
+  <div id="estado"></div>
+
+  <section class="tarjeta" id="configuracion" hidden>
+    <h2>Tu configuración</h2>
+    <div id="asistente"></div>
+  </section>
+
+  <div id="practica">
+  <div class="tarjeta">
+    <div id="texto"></div>
+    <div id="pista"></div>
+  </div>
+
+  <div class="tarjeta" id="zonaTeclado">
+    <div id="capa"></div>
+    <div id="teclado"></div>
+  </div>
+
+  <div class="tarjeta">
+    <div class="cifras">
+      <div><b id="aciertos">0</b><span>aciertos</span></div>
+      <div><b id="errores">0</b><span>errores</span></div>
+      <div><b id="precision">–</b><span>precisión</span></div>
+      <div><b id="ppm">–</b><span>palabras por minuto</span></div>
+    </div>
+    <div id="debiles"></div>
+    <div class="pie">
+      <button id="reiniciar">Borrar estadísticas</button>
+      <button id="guardar">Guardar configuración en archivo</button>
+      <button id="cargar">Cargar configuración</button>
+      <input id="archivo" type="file" accept=".json,application/json" hidden>
+    </div>
+  </div>
+  </div>
+</main>
+
+<script>
+// #region CONSTANTS
+
+/** Carácter que escribe cada tecla física según el idioma de Windows: código → [normal, con Shift]. */
+const SISTEMAS = {
+  us: {
+    Digit1: ['1', '!'], Digit2: ['2', '@'], Digit3: ['3', '#'], Digit4: ['4', '$'], Digit5: ['5', '%'],
+    Digit6: ['6', '^'], Digit7: ['7', '&'], Digit8: ['8', '*'], Digit9: ['9', '('], Digit0: ['0', ')'],
+    Minus: ['-', '_'], Equal: ['=', '+'], BracketLeft: ['[', '{'], BracketRight: [']', '}'],
+    Backslash: ['\\', '|'], Semicolon: [';', ':'], Quote: ["'", '"'], Backquote: ['`', '~'],
+    Comma: [',', '<'], Period: ['.', '>'], Slash: ['/', '?'],
+  },
+  latam: {
+    Digit1: ['1', '!'], Digit2: ['2', '"'], Digit3: ['3', '#'], Digit4: ['4', '$'], Digit5: ['5', '%'],
+    Digit6: ['6', '&'], Digit7: ['7', '/'], Digit8: ['8', '('], Digit9: ['9', ')'], Digit0: ['0', '='],
+    Minus: ["'", '?'], Equal: ['¿', '¡'], BracketRight: ['+', '*'],
+    Backslash: ['}', ']'], Semicolon: ['ñ', 'Ñ'], Quote: ['{', '['], Backquote: ['|', '°'],
+    Comma: [',', ';'], Period: ['.', ':'], Slash: ['-', '_'], IntlBackslash: ['<', '>'],
+  },
+};
+
+/** Caracteres que da AltGr según el idioma de Windows: código → [con AltGr, con AltGr y Shift]. */
+const ALTGR = {
+  us: { KeyA: ['á', 'Á'], KeyE: ['é', 'É'], KeyI: ['í', 'Í'], KeyO: ['ó', 'Ó'], KeyU: ['ú', 'Ú'], KeyN: ['ñ', 'Ñ'],
+    KeyY: ['ü', 'Ü'], Slash: ['¿', null], Digit1: ['¡', null], Digit5: ['€', null] },
+  latam: {},
+};
+
+/** Teclas que escriben lo mismo en cualquier idioma: código → [normal, con Shift]. */
+const COMUNES = {
+  Space: [' ', null], NumpadMultiply: ['*', null], NumpadAdd: ['+', null],
+  NumpadSubtract: ['-', null], NumpadDivide: ['/', null], NumpadDecimal: ['.', null],
+};
+
+/** Etiqueta de las teclas que no escriben un carácter. */
+const ESPECIALES = {
+  Enter: '⏎', Backspace: '⌫', Tab: 'Tab', Space: '␣', Escape: 'Esc', ShiftLeft: '⇧', ShiftRight: '⇧',
+  ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'AltGr', MetaLeft: 'Win', MetaRight: 'Win',
+  ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Delete: 'Supr', Home: 'Inicio', End: 'Fin',
+  PageUp: 'RePág', PageDown: 'AvPág', CapsLock: 'Bloq',
+};
+
+/** Código HID del teclado (página 7) → código de tecla del navegador. */
+const HID = (() => {
+  const t = { 39: 'Digit0', 40: 'Enter', 41: 'Escape', 42: 'Backspace', 43: 'Tab', 44: 'Space', 45: 'Minus',
+    46: 'Equal', 47: 'BracketLeft', 48: 'BracketRight', 49: 'Backslash', 51: 'Semicolon', 52: 'Quote',
+    53: 'Backquote', 54: 'Comma', 55: 'Period', 56: 'Slash', 57: 'CapsLock', 74: 'Home', 75: 'PageUp',
+    76: 'Delete', 77: 'End', 78: 'PageDown', 79: 'ArrowRight', 80: 'ArrowLeft', 81: 'ArrowDown', 82: 'ArrowUp',
+    84: 'NumpadDivide', 85: 'NumpadMultiply', 86: 'NumpadSubtract', 87: 'NumpadAdd', 99: 'NumpadDecimal',
+    100: 'IntlBackslash', 224: 'ControlLeft', 225: 'ShiftLeft', 226: 'AltLeft', 227: 'MetaLeft',
+    228: 'ControlRight', 229: 'ShiftRight', 230: 'AltRight', 231: 'MetaRight' };
+  for (let i = 0; i < 26; i++) t[4 + i] = 'Key' + String.fromCharCode(65 + i);
+  for (let i = 1; i <= 9; i++) t[29 + i] = 'Digit' + i;
+  for (let i = 1; i <= 12; i++) t[57 + i] = 'F' + i;
+  return t;
+})();
+
+const PALABRAS = ('de la que el en y a los se del las un por con no una su para es al lo como mas pero sus le ya o ' +
+  'este si porque esta entre cuando muy sin sobre ser tiene tambien me hasta hay donde quien desde todo nos ' +
+  'durante todos uno les ni contra otros ese eso ante ellos esto mi antes algunos unos yo otro otras otra ' +
+  'tanto esa estos mucho cual poco ella estar estas algo nosotros nada casa tiempo vida mundo dia cosa hombre ' +
+  'parte lugar trabajo punto mano forma caso grupo agua noche nombre tierra campo ciudad gente camino libro ' +
+  'mesa puerta carta papel verde azul rojo blanco negro grande nuevo bueno largo claro decir hacer poder tener ' +
+  'saber querer llegar pasar deber poner parecer quedar creer hablar llevar dejar seguir encontrar llamar venir ' +
+  'pensar salir volver tomar conocer vivir sentir tratar mirar contar empezar esperar buscar entrar trabajar ' +
+  'escribir perder ahora siempre nunca aqui bien mal hoy luego cerca lejos año niño señor mañana pequeño español').split(' ');
+
+const PALABRAS_ES = ('más también está aquí así día después país según qué cómo él sí años niño señor mañana pequeño ' +
+  'español canción corazón camión razón nación número música público último fácil difícil árbol lápiz café papá ' +
+  'mamá sofá inglés francés jamás quizás además través único página teléfono médico rápido cuándo dónde quién ' +
+  'acción información atención opinión versión sesión útil móvil débil azúcar ningún algún común jardín ' +
+  'pingüino vergüenza señal dueño sueño otoño baño compañía montaña ¿qué? ¿cómo? ¿dónde? ¿cuándo? ¡hola! ¡sí! ¡qué bien!').split(' ');
+
+const LECCIONES = [
+  ['central', 'Fila central'], ['superior', 'Fila superior'], ['inferior', 'Fila inferior'],
+  ['letras', 'Todas las letras'], ['palabras', 'Palabras'], ['mayusculas', 'Palabras con mayúscula'], ['espanol', 'Español: tildes y ñ'],
+  ['numeros', 'Números'], ['simbolos', 'Símbolos'], ['debiles', 'Mis puntos débiles'], ['propio', 'Texto propio…'],
+];
+
+const LARGO_LINEA = 36;
+const CLAVE = 'entrenador-toucan';
+
+/** Posiciones del Toucan (42 teclas): yemas en la fila central, de meñique a índice. */
+const DEDOS = { L: [13, 14, 15, 16], R: [22, 21, 20, 19] };
+/** Teclas de pulgar de cada mano, de izquierda a derecha. */
+const PULGARES = { L: [36, 37, 38], R: [39, 40, 41] };
+/** Teclas de la columna exterior que se pueden reasignar (la comilla se queda en su sitio). */
+const EXTERIOR = { L: [0, 12, 24], R: [11, 35] };
+/** Esfuerzo [pulsar, mantener] según la nota del usuario; 0 = el pulgar descansa ahí. */
+const ESFUERZO = {
+  pulgar: { 0: [1, 1], 1: [1.3, 1.5], 2: [2, 3], 3: [4, 7] },
+  exterior: { 1: [1.6, 2], 2: [2.6, 4], 3: [5, 9] },
+};
+/** Esfuerzo de una función que no cabe en BASE y hay que buscar en una capa. */
+const SIN_SITIO = 5;
+const NOMBRE_POS = {
+  36: 'pulgar izq. exterior', 37: 'pulgar izq. central', 38: 'pulgar izq. interior',
+  39: 'pulgar der. interior', 40: 'pulgar der. central', 41: 'pulgar der. exterior',
+  0: 'esquina sup. izq.', 12: 'meñique izq., fila central', 24: 'esquina inf. izq.',
+  11: 'esquina sup. der.', 35: 'esquina inf. der.',
+};
+const ID_TECLA = { Space: 'space', Backspace: 'bksp', Enter: 'enter', Tab: 'tab', Escape: 'esc', ControlLeft: 'ctrl',
+  ControlRight: 'ctrl', MetaLeft: 'win', MetaRight: 'win', AltRight: 'altgr', ShiftLeft: 'shift', ShiftRight: 'shift' };
+
+// #endregion
+
+// #region HELPERS
+
+/**
+ * Crea una tecla que escribe (con o sin Shift incluido).
+ * @param {string} k - Código de tecla del navegador.
+ * @param {boolean} [s] - La tecla ya envía Shift por sí misma.
+ * @param {boolean} [g] - La tecla ya envía AltGr por sí misma.
+ * @returns {{k: string, s: boolean, g?: boolean}} Asignación de tecla.
+ */
+const tecla = (k, s = false, g = false) => (g ? { k, s, g } : { k, s });
+
+/**
+ * Posición física por defecto del Toucan (42 teclas), en centésimas de tecla.
+ * @returns {Array<{x: number, y: number, w: number, h: number, r: number, rx: number, ry: number}>} Una entrada por tecla.
+ */
+function disposicionPorDefecto() {
+  const escalon = [37, 37, 12, 0, 12, 24];
+  const teclas = [];
+  for (let fila = 0; fila < 3; fila++) {
+    for (let col = 0; col < 12; col++) {
+      const izquierda = col < 6;
+      const x = izquierda ? col * 100 : 800 + (col - 6) * 100;
+      const y = fila * 100 + escalon[izquierda ? col : 11 - col];
+      teclas.push({ x, y, w: 100, h: 100, r: 0, rx: 0, ry: 0 });
+    }
+  }
+  [330, 430, 530, 770, 870, 970].forEach((x) => teclas.push({ x, y: 345, w: 100, h: 100, r: 0, rx: 0, ry: 0 }));
+  return teclas;
+}
+
+/**
+ * Keymap de fábrica del Toucan2, usado hasta que se lee el teclado real.
+ * @returns {{layers: Array<{id: number, name: string, keys: object[]}>, layout: object[]}} Keymap normalizado.
+ */
+function keymapPorDefecto() {
+  const K = (l) => tecla('Key' + l);
+  const D = (n, s) => tecla('Digit' + n, s);
+  const T = () => ({ tr: 1 });
+  const O = (o) => ({ o });
+  const letras = (txt) => txt.split('').map(K);
+  const repetir = (n) => Array.from({ length: n }, T);
+  const base = [
+    tecla('Tab'), ...letras('QWERTYUIOP'), tecla('Backspace'),
+    tecla('ControlLeft'), ...letras('ASDFGHJKL'), tecla('Semicolon'), tecla('Quote'),
+    tecla('ShiftLeft'), ...letras('ZXCVBNM'), tecla('Comma'), tecla('Period'), tecla('Slash'), tecla('Escape'),
+    tecla('MetaLeft'), { mo: 1 }, tecla('Space'), tecla('Enter'), { mo: 2 }, tecla('AltRight'),
+  ];
+  const nav = [
+    tecla('Tab'), ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((n) => D(n)), tecla('Backspace'),
+    O('BT×'), O('BT1'), O('BT2'), O('BT3'), O('BT4'), O('BT5'),
+    tecla('ArrowLeft'), tecla('ArrowDown'), tecla('ArrowUp'), tecla('ArrowRight'), T(), T(),
+    tecla('ShiftLeft'), O('Studio'), ...repetir(10), ...repetir(6),
+  ];
+  const sym = [
+    tecla('Tab'), ...[1, 2, 3, 4, 5, 6, 7].map((n) => D(n, true)), tecla('NumpadMultiply'), D(9, true), D(0, true), tecla('Backspace'),
+    tecla('ControlLeft'), ...repetir(5),
+    ...['Minus', 'Equal', 'BracketLeft', 'BracketRight', 'Backslash', 'Backquote'].map((c) => tecla(c)),
+    tecla('ShiftLeft'), ...repetir(5),
+    ...['Minus', 'Equal', 'BracketLeft', 'BracketRight', 'Backslash', 'Backquote'].map((c) => tecla(c, true)),
+    ...repetir(6),
+  ];
+  return {
+    layers: [{ id: 0, name: 'BASE', keys: base }, { id: 1, name: 'NAV', keys: nav }, { id: 2, name: 'SYM', keys: sym }],
+    layout: disposicionPorDefecto(),
+  };
+}
+
+/**
+ * Lee un valor guardado en el navegador.
+ * @param {string} nombre - Nombre del dato.
+ * @param {*} porDefecto - Valor si no existe o no se puede leer.
+ * @returns {*} El dato guardado o el valor por defecto.
+ */
+function leerGuardado(nombre, porDefecto) {
+  try {
+    const crudo = localStorage.getItem(CLAVE + '-' + nombre);
+    return crudo ? JSON.parse(crudo) : porDefecto;
+  } catch { return porDefecto; }
+}
+
+/**
+ * Guarda un valor en el navegador (si falla, el entrenador sigue funcionando sin memoria).
+ * @param {string} nombre - Nombre del dato.
+ * @param {*} valor - Valor serializable.
+ * @returns {void}
+ */
+function guardar(nombre, valor) {
+  try { localStorage.setItem(CLAVE + '-' + nombre, JSON.stringify(valor)); } catch { /* sin almacenamiento */ }
+}
+
+/**
+ * Tabla completa de caracteres del idioma de Windows elegido.
+ * @param {string} sistema - 'us' o 'latam'.
+ * @returns {Object<string, [string|null, string|null]>} código → [normal, con Shift].
+ */
+function tablaSistema(sistema) {
+  const tabla = { ...COMUNES, ...SISTEMAS[sistema] };
+  for (let i = 0; i < 26; i++) {
+    const l = String.fromCharCode(97 + i);
+    tabla['Key' + l.toUpperCase()] = [l, l.toUpperCase()];
+  }
+  for (const [codigo, par] of Object.entries(ALTGR[sistema])) tabla[codigo] = [...tabla[codigo].slice(0, 2), ...par];
+  return tabla;
+}
+
+/**
+ * Etiqueta que se dibuja sobre una tecla.
+ * @param {object} asignacion - Asignación normalizada de la tecla.
+ * @param {object} tabla - Tabla del idioma de Windows.
+ * @param {Array<{id: number, name: string}>} capas - Capas del keymap.
+ * @returns {string} Texto corto para la tecla.
+ */
+function etiqueta(asignacion, tabla, capas) {
+  if (!asignacion || asignacion.tr) return '';
+  if (asignacion.k) {
+    const par = tabla[asignacion.k];
+    const caracter = par && asignacion.k !== 'Space' ? par[(asignacion.g ? 2 : 0) + (asignacion.s ? 1 : 0)] : null;
+    if (caracter) return /^\p{Ll}$/u.test(caracter) ? caracter.toUpperCase() : caracter;
+    return ESPECIALES[asignacion.k] || asignacion.k;
+  }
+  if (asignacion.mo != null) {
+    const capa = capas.find((c) => c.id === asignacion.mo);
+    return capa ? capa.name || 'Capa ' + capa.id : 'Capa';
+  }
+  return asignacion.o || '';
+}
+
+/**
+ * Calcula cómo se escribe cada carácter en este teclado.
+ * @param {object} keymap - Keymap normalizado.
+ * @param {object} tabla - Tabla del idioma de Windows.
+ * @returns {Object<string, {capa: number, pos: number, mantener: number|null, shift: number|null, altgr: number|null}>} carácter → receta.
+ * @flow
+ * 1. Encuentra las capas alcanzables con una tecla de capa en BASE
+ * 2. Para cada carácter busca una tecla que lo escriba directamente
+ * 3. Si no hay, busca la tecla sin Shift o sin AltGr y añade la tecla que falta mantener
+ * 4. Entre varios Shift elige el que no comparte pulgar con otra tecla de la receta
+ */
+function calcularRecetas(keymap, tabla) {
+  const base = keymap.layers[0].keys;
+  const alcance = [{ capa: 0, mantener: null }];
+  base.forEach((a, pos) => {
+    if (a.mo == null) return;
+    const capa = keymap.layers.findIndex((c) => c.id === a.mo);
+    if (capa > 0 && !alcance.some((x) => x.capa === capa)) alcance.push({ capa, mantener: pos });
+  });
+  const shifts = base.map((a, i) => (a.k === 'ShiftLeft' || a.k === 'ShiftRight' ? i : -1))
+    .filter((i) => i >= 0).sort((a, b) => (b >= 36) - (a >= 36));
+  const posAltgr = base.findIndex((a) => a.k === 'AltRight');
+  const mismoPulgar = (a, b) => a != null && a >= 36 && b >= 36 && (a < 39) === (b < 39);
+  const buscar = (codigo, conShift, conAltgr) => {
+    for (const { capa, mantener } of alcance) {
+      const pos = keymap.layers[capa].keys.findIndex((a, i) => a.k === codigo && !!a.s === conShift && !!a.g === conAltgr && i !== mantener);
+      if (pos >= 0) return { capa, pos, mantener };
+    }
+    return null;
+  };
+  const recetas = {};
+  for (const [faltaShift, faltaAltgr] of [[false, false], [true, false], [false, true], [true, true]]) {
+    if ((faltaShift && !shifts.length) || (faltaAltgr && posAltgr < 0)) continue;
+    for (const [codigo, niveles] of Object.entries(tabla)) {
+      niveles.forEach((caracter, nivel) => {
+        const conShift = !!(nivel & 1), conAltgr = nivel > 1;
+        if (caracter == null || recetas[caracter] || (faltaShift && !conShift) || (faltaAltgr && !conAltgr)) return;
+        const hallada = buscar(codigo, conShift && !faltaShift, conAltgr && !faltaAltgr);
+        if (!hallada) return;
+        const altgr = faltaAltgr ? posAltgr : null;
+        const ocupadas = [hallada.mantener, altgr, hallada.pos];
+        const shift = faltaShift ? shifts.find((p) => !ocupadas.some((o) => mismoPulgar(o, p))) ?? shifts[0] : null;
+        recetas[caracter] = { ...hallada, shift, altgr };
+      });
+    }
+  }
+  return recetas;
+}
+
+/**
+ * Indica si una pulsación llega con AltGr (Windows lo envía como Ctrl + Alt).
+ * @param {KeyboardEvent} evento - Pulsación recibida.
+ * @returns {boolean} true si AltGr está activo.
+ */
+const conAltgr = (evento) => evento.getModifierState('AltGraph') || (evento.ctrlKey && evento.altKey);
+
+/**
+ * Indica si una pulsación del navegador corresponde al carácter esperado.
+ * @param {KeyboardEvent} evento - Pulsación recibida.
+ * @param {string} caracter - Carácter esperado.
+ * @param {object} tabla - Tabla del idioma de Windows.
+ * @returns {boolean} true si la tecla física y el Shift coinciden.
+ */
+function acierta(evento, caracter, tabla) {
+  const par = tabla[evento.code];
+  if (!par) return false;
+  return par[(conAltgr(evento) ? 2 : 0) + (evento.shiftKey ? 1 : 0)] === caracter;
+}
+
+/**
+ * Elige un elemento al azar, con más probabilidad para los de mayor peso.
+ * @param {string[]} opciones - Elementos candidatos.
+ * @param {(o: string) => number} peso - Peso de cada elemento.
+ * @returns {string} El elemento elegido.
+ */
+function alAzar(opciones, peso = () => 1) {
+  const pesos = opciones.map(peso);
+  let tiro = Math.random() * pesos.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < opciones.length; i++) { tiro -= pesos[i]; if (tiro <= 0) return opciones[i]; }
+  return opciones[opciones.length - 1];
+}
+
+/**
+ * Proporción de fallos de un carácter.
+ * @param {{a: number, e: number}|undefined} dato - Aciertos y errores acumulados.
+ * @returns {number} Fallos entre intentos (0 si no hay datos).
+ */
+const tasaError = (dato) => (dato && dato.a + dato.e > 0 ? dato.e / (dato.a + dato.e) : 0);
+
+/**
+ * Escapa un texto para insertarlo como HTML.
+ * @param {string} texto - Texto plano.
+ * @returns {string} Texto seguro para innerHTML.
+ */
+const escapar = (texto) => String(texto).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+/**
+ * Centro de una tecla en píxeles, teniendo en cuenta su giro.
+ * @param {{x: number, y: number, w: number, h: number, r: number, rx: number, ry: number}} k - Tecla en centésimas.
+ * @param {number} u - Píxeles por unidad de tecla.
+ * @returns {[number, number]} Coordenadas x, y del centro.
+ */
+function centro(k, u) {
+  let x = k.x + k.w / 2, y = k.y + k.h / 2;
+  if (k.r) {
+    const a = (k.r / 100) * Math.PI / 180, dx = x - k.rx, dy = y - k.ry;
+    x = k.rx + dx * Math.cos(a) - dy * Math.sin(a);
+    y = k.ry + dx * Math.sin(a) + dy * Math.cos(a);
+  }
+  return [(x / 100) * u, (y / 100) * u];
+}
+
+/**
+ * Dibuja las teclas del keymap dentro de una caja.
+ * @param {HTMLElement} caja - Contenedor con posición relativa.
+ * @param {object[]} layout - Forma física del teclado.
+ * @param {number} anchoDisponible - Ancho máximo en píxeles.
+ * @param {(pos: number) => {texto: string, clase: string}} porTecla - Texto y clases de cada tecla.
+ * @returns {number} Píxeles por unidad de tecla usados.
+ */
+function dibujarTeclado(caja, layout, anchoDisponible, porTecla) {
+  const ancho = Math.max(...layout.map((k) => k.x + k.w));
+  const alto = Math.max(...layout.map((k) => k.y + k.h));
+  const u = Math.max(12, Math.min(58, anchoDisponible / (ancho / 100)));
+  caja.style.width = (ancho / 100) * u + 'px';
+  caja.style.height = (alto / 100) * u + 'px';
+  caja.innerHTML = layout.map((k, pos) => {
+    const { texto, clase } = porTecla(pos);
+    const giro = k.r ? `transform:rotate(${k.r / 100}deg);transform-origin:${((k.rx - k.x) / 100) * u}px ${((k.ry - k.y) / 100) * u}px;` : '';
+    return `<div class="tecla ${clase}" data-pos="${pos}" style="left:${(k.x / 100) * u + 2}px;top:${(k.y / 100) * u + 2}px;width:${(k.w / 100) * u - 4}px;height:${(k.h / 100) * u - 4}px;${giro}">${escapar(texto)}</div>`;
+  }).join('');
+  return u;
+}
+
+/**
+ * Reparte funciones entre teclas minimizando el esfuerzo total (asignación exacta por máscaras).
+ * @param {Array<{id: string, w: number, t: number, solo?: string, mano?: string, fijo?: boolean}>} funcs - Funciones a colocar.
+ * @param {Array<{pos: number, mano: string, tipo: string, c: number[]}>} slots - Teclas disponibles con su esfuerzo.
+ * @param {Object<string, {pos: number}>} actual - Dónde está hoy cada función, para desempatar.
+ * @returns {Object<string, object>} id de función → tecla asignada (ausente si no cabe).
+ * @flow
+ * 1. Recorre las funciones acumulando el mejor coste por conjunto de teclas ocupadas
+ * 2. Cada función puede ocupar una tecla permitida o quedarse sin sitio (si no es obligatoria)
+ * 3. Reconstruye la asignación del conjunto de menor coste
+ */
+function resolver(funcs, slots, actual) {
+  let estados = new Map([[0, { c: 0, prev: null }]]);
+  for (const f of funcs) {
+    const nuevos = new Map();
+    const poner = (mascara, e) => { const o = nuevos.get(mascara); if (!o || e.c < o.c) nuevos.set(mascara, e); };
+    for (const [mascara, e] of estados) {
+      if (!f.fijo) poner(mascara, { c: e.c + f.w * SIN_SITIO, prev: e });
+      slots.forEach((s, j) => {
+        if ((mascara >> j) & 1 || (f.solo && f.solo !== s.tipo) || (f.mano && f.mano !== s.mano)) return;
+        const igual = actual[f.id] && actual[f.id].pos === s.pos ? 1e-6 : 0;
+        poner(mascara | (1 << j), { c: e.c + f.w * s.c[f.t] - igual, prev: e, f, s });
+      });
+    }
+    estados = nuevos;
+  }
+  let mejor = null;
+  for (const e of estados.values()) if (!mejor || e.c < mejor.c) mejor = e;
+  const sitio = {};
+  for (let e = mejor; e; e = e.prev) if (e.s) sitio[e.f.id] = e.s;
+  return sitio;
+}
+
+// #endregion
+
+// #region SERVICES
+
+/**
+ * Lee un entero varint de protobuf.
+ * @param {Uint8Array} b - Bytes.
+ * @param {number} i - Posición inicial.
+ * @returns {[number, number]} Valor y posición siguiente.
+ */
+function leerVarint(b, i) {
+  let valor = 0, factor = 1;
+  for (;;) {
+    const byte = b[i++];
+    valor += (byte & 0x7f) * factor;
+    factor *= 128;
+    if (!(byte & 0x80) || i >= b.length) return [valor, i];
+  }
+}
+
+/**
+ * Escribe un entero como varint de protobuf.
+ * @param {number} n - Entero no negativo.
+ * @returns {number[]} Bytes del varint.
+ */
+function varint(n) {
+  const bytes = [];
+  while (n > 127) { bytes.push((n % 128) | 0x80); n = Math.floor(n / 128); }
+  bytes.push(n);
+  return bytes;
+}
+
+/**
+ * Decodifica un mensaje protobuf sin esquema.
+ * @param {Uint8Array} b - Bytes del mensaje.
+ * @returns {Array<{f: number, v?: number, b?: Uint8Array}>} Campos en orden: número, y valor entero o bytes.
+ */
+function campos(b) {
+  const salida = [];
+  let i = 0;
+  while (i < b.length) {
+    let etiquetaCampo, largo, valor;
+    [etiquetaCampo, i] = leerVarint(b, i);
+    const f = Math.floor(etiquetaCampo / 8), tipo = etiquetaCampo & 7;
+    if (tipo === 0) { [valor, i] = leerVarint(b, i); salida.push({ f, v: valor }); }
+    else if (tipo === 2) { [largo, i] = leerVarint(b, i); salida.push({ f, b: b.subarray(i, i + largo) }); i += largo; }
+    else if (tipo === 5) i += 4;
+    else if (tipo === 1) i += 8;
+    else break;
+  }
+  return salida;
+}
+
+/** Primer campo con ese número, o undefined. */
+const campo = (lista, f) => lista.find((c) => c.f === f);
+/** Entero con signo en zigzag → número. */
+const zigzag = (v) => (v >>> 1) ^ -(v & 1);
+/** Entero de un campo, 0 si falta (protobuf omite los ceros). */
+const entero = (lista, f) => (campo(lista, f) || { v: 0 }).v;
+
+/**
+ * Convierte una asignación de ZMK Studio a la forma del entrenador.
+ * @param {string} conducta - Nombre de la conducta en minúsculas ('key press', 'momentary layer'…).
+ * @param {number} p1 - Primer parámetro.
+ * @param {number} p2 - Segundo parámetro.
+ * @returns {object} Asignación normalizada.
+ */
+function convertirAsignacion(conducta, p1, p2) {
+  const deUso = (p) => {
+    const mods = (p >>> 24) & 0xff, pagina = (p >>> 16) & 0xff || 7;
+    const codigo = pagina === 7 ? HID[p & 0xffff] : null;
+    if (!codigo || mods & ~0x62) return { o: codigo ? '+' + (ESPECIALES[codigo] || codigo.replace(/^Key|^Digit/, '')) : '…' };
+    return tecla(codigo, !!(mods & 0x22), !!(mods & 0x40));
+  };
+  if (conducta === 'key press') return deUso(p1);
+  if (conducta === 'mod-tap') return deUso(p2);
+  if (conducta === 'layer-tap') return { ...deUso(p2), mo: p1 };
+  if (conducta === 'momentary layer') return { mo: p1 };
+  if (conducta === 'transparent') return { tr: 1 };
+  if (conducta === 'none') return { o: '' };
+  const cortas = { bluetooth: 'BT', 'studio unlock': 'Studio', 'mouse key press': 'Clic', 'to layer': 'Ir', 'toggle layer': 'Fijar',
+    'sticky key': 'Fija', 'sticky layer': 'Capa', 'caps word': 'Mayús', bootloader: 'Boot', reset: 'Reset' };
+  return { o: cortas[conducta] || conducta.slice(0, 6) };
+}
+
+/**
+ * Lee el keymap y la forma física del teclado por USB con el protocolo de ZMK Studio.
+ * @param {(mensaje: string) => void} avisar - Recibe mensajes de progreso.
+ * @returns {Promise<{layers: object[], layout: object[]}>} Keymap normalizado.
+ * @flow
+ * 1. Abre el puerto serie que el usuario elige
+ * 2. Espera a que el teclado esté desbloqueado
+ * 3. Pide los nombres de las conductas, las capas y la forma física
+ * 4. Cierra el puerto y devuelve el keymap normalizado
+ */
+async function leerTeclado(avisar) {
+  if (!('serial' in navigator)) throw new Error('Este navegador no puede hablar con el teclado. Usa Chrome o Edge en el computador.');
+  const puerto = await navigator.serial.requestPort({});
+  await puerto.open({ baudRate: 12500 });
+  const escritor = puerto.writable.getWriter();
+  const lector = puerto.readable.getReader();
+  const pendientes = new Map();
+  let siguiente = 1;
+
+  const recibir = (async () => {
+    let trama = null, escapado = false;
+    try {
+      for (;;) {
+        const { value, done } = await lector.read();
+        if (done) return;
+        for (const byte of value) {
+          if (trama === null) { if (byte === 0xab) trama = []; continue; }
+          if (escapado) { trama.push(byte); escapado = false; continue; }
+          if (byte === 0xac) { escapado = true; continue; }
+          if (byte !== 0xad) { trama.push(byte); continue; }
+          const respuesta = campo(campos(Uint8Array.from(trama)), 1);
+          trama = null;
+          if (!respuesta) continue;
+          const partes = campos(respuesta.b);
+          const resolver = pendientes.get(entero(partes, 1));
+          if (resolver) resolver(partes);
+        }
+      }
+    } catch { /* puerto cerrado */ }
+  })();
+
+  const pedir = (subsistema, cuerpo) => new Promise((resolver, rechazar) => {
+    const id = siguiente++;
+    const reloj = setTimeout(() => { pendientes.delete(id); rechazar(new Error('El teclado no respondió. Comprueba que es la mitad izquierda y que zmk.studio está cerrado.')); }, 4000);
+    pendientes.set(id, (partes) => {
+      clearTimeout(reloj);
+      pendientes.delete(id);
+      const dato = campo(partes, subsistema);
+      if (dato) resolver(campos(dato.b));
+      else rechazar(new Error('El teclado rechazó la petición.'));
+    });
+    const mensaje = [0x08, ...varint(id), (subsistema << 3) | 2, ...varint(cuerpo.length), ...cuerpo];
+    const trama = [0xab];
+    for (const byte of mensaje) { if (byte >= 0xab && byte <= 0xad) trama.push(0xac); trama.push(byte); }
+    trama.push(0xad);
+    escritor.write(Uint8Array.from(trama));
+  });
+
+  try {
+    for (let intento = 0; ; intento++) {
+      if (entero(await pedir(3, [0x10, 1]), 2) === 1) break;
+      if (intento > 80) throw new Error('El teclado sigue bloqueado.');
+      avisar('Desbloquea el teclado: mantén la tecla de la capa NAV y pulsa la tecla «Studio» (la Z de fábrica)…');
+      await new Promise((r) => setTimeout(r, 750));
+    }
+
+    avisar('Leyendo las conductas…');
+    const lista = campo(await pedir(4, [0x08, 1]), 1);
+    const ids = [];
+    for (const c of lista ? campos(lista.b) : []) {
+      if (c.b) { for (let i = 0; i < c.b.length;) { let v; [v, i] = leerVarint(c.b, i); ids.push(v); } } else ids.push(c.v);
+    }
+    const nombres = new Map();
+    for (const id of ids) {
+      const interno = [0x08, ...varint(id)];
+      const detalle = campo(await pedir(4, [0x12, ...varint(interno.length), ...interno]), 2);
+      const nombre = detalle && campo(campos(detalle.b), 2);
+      nombres.set(id, nombre ? new TextDecoder().decode(nombre.b).trim().toLowerCase() : '');
+    }
+
+    avisar('Leyendo las capas…');
+    const mapa = campo(await pedir(5, [0x08, 1]), 1);
+    const layers = campos(mapa.b).filter((c) => c.f === 1).map((c) => {
+      const partes = campos(c.b);
+      const nombre = campo(partes, 2);
+      const keys = partes.filter((p) => p.f === 3).map((p) => {
+        const a = campos(p.b);
+        return convertirAsignacion(nombres.get(zigzag(entero(a, 1))) || '', entero(a, 2), entero(a, 3));
+      });
+      return { id: entero(partes, 1), name: nombre ? new TextDecoder().decode(nombre.b) : '', keys };
+    });
+
+    avisar('Leyendo la forma del teclado…');
+    let layout = disposicionPorDefecto();
+    const formas = campo(await pedir(5, [0x30, 1]), 6);
+    if (formas) {
+      const partes = campos(formas.b);
+      const activa = partes.filter((p) => p.f === 2)[entero(partes, 1)];
+      if (activa) {
+        layout = campos(activa.b).filter((p) => p.f === 2).map((p) => {
+          const k = campos(p.b);
+          const z = (f) => zigzag(entero(k, f));
+          return { w: z(1), h: z(2), x: z(3), y: z(4), r: z(5), rx: z(6), ry: z(7) };
+        });
+      }
+    }
+    if (!layers.length || !layers[0].keys.length) throw new Error('El teclado no devolvió ninguna capa.');
+    if (layout.length !== layers[0].keys.length) layout = disposicionPorDefecto();
+    return { layers, layout };
+  } finally {
+    try { await lector.cancel(); } catch { /* ya cerrado */ }
+    await recibir;
+    try { escritor.releaseLock(); lector.releaseLock(); await puerto.close(); } catch { /* ya cerrado */ }
+  }
+}
+
+// #endregion
+
+// #region MAIN
+
+const $ = (id) => document.getElementById(id);
+const estado = {
+  keymap: leerGuardado('keymap', null) || keymapPorDefecto(),
+  sistema: leerGuardado('sistema', 'us'),
+  leccion: leerGuardado('leccion', 'central'),
+  propio: leerGuardado('propio', ''),
+  porCaracter: leerGuardado('caracteres', {}),
+  verTeclado: leerGuardado('ver', true),
+  tabla: null, recetas: null, linea: '', indice: 0, cola: [],
+  vista: 'auto', teclas: { shift: false, altgr: false },
+  aciertos: 0, errores: 0, msActivos: 0, inicioLinea: 0, fallo: false, pulsaste: '',
+};
+
+/**
+ * Caracteres que practica una lección de repetición.
+ * @param {string} leccion - Identificador de la lección.
+ * @returns {string[]} Caracteres disponibles en este teclado para esa lección.
+ */
+function caracteresDe(leccion) {
+  const todos = Object.keys(estado.recetas).filter((c) => c !== ' ');
+  const letras = todos.filter((c) => /^[a-zñ]$/.test(c));
+  const fila = (n) => {
+    const base = estado.keymap.layers[0].keys;
+    const porFila = Math.floor(Math.min(base.length, 36) / 3);
+    return base.slice(n * porFila, (n + 1) * porFila)
+      .map((a) => (a.k && !a.s && estado.tabla[a.k] ? estado.tabla[a.k][0] : null))
+      .filter((c) => c && /^[a-zñ]$/.test(c) && estado.recetas[c]);
+  };
+  if (leccion === 'superior') return fila(0);
+  if (leccion === 'central') return fila(1);
+  if (leccion === 'inferior') return fila(2);
+  if (leccion === 'numeros') return todos.filter((c) => /^[0-9]$/.test(c));
+  if (leccion === 'simbolos') return todos.filter((c) => !/^[\p{L}\d]$/u.test(c));
+  if (leccion === 'debiles') {
+    const peores = todos.filter((c) => (estado.porCaracter[c] || {}).e > 0)
+      .sort((a, b) => tasaError(estado.porCaracter[b]) - tasaError(estado.porCaracter[a])).slice(0, 6);
+    return peores.length >= 2 ? peores : letras;
+  }
+  return letras;
+}
+
+/**
+ * Genera la siguiente línea de práctica de la lección activa.
+ * @returns {string} Texto que solo usa caracteres que este teclado puede escribir.
+ */
+function generarLinea() {
+  const escribible = (texto) => [...texto].every((c) => estado.recetas[c]);
+  const separador = estado.recetas[' '] ? ' ' : '';
+  const trozos = [];
+  const largo = () => trozos.join(separador).length;
+
+  if (estado.leccion === 'propio') {
+    if (!estado.cola.length) estado.cola = [...estado.propio.replace(/\s+/g, ' ')].filter((c) => estado.recetas[c]).join('').trim().split(' ').filter(Boolean);
+    while (estado.cola.length && largo() < LARGO_LINEA) trozos.push(estado.cola.shift());
+    if (trozos.length) return trozos.join(separador);
+  }
+  if (['palabras', 'mayusculas', 'espanol'].includes(estado.leccion)) {
+    const posibles = (estado.leccion === 'espanol' ? PALABRAS_ES : PALABRAS).filter(escribible);
+    while (posibles.length && largo() < LARGO_LINEA) {
+      const palabra = alAzar(posibles);
+      const mayus = palabra[0].toUpperCase() + palabra.slice(1);
+      trozos.push(estado.leccion === 'mayusculas' && escribible(mayus) ? mayus : palabra);
+    }
+    if (trozos.length) return trozos.join(separador);
+  }
+  const juego = caracteresDe(estado.leccion);
+  if (!juego.length) return '';
+  const peso = (c) => 1 + 4 * tasaError(estado.porCaracter[c]);
+  while (largo() < LARGO_LINEA) {
+    let trozo = '';
+    const n = 2 + Math.floor(Math.random() * 4);
+    for (let i = 0; i < n; i++) trozo += alAzar(juego, peso);
+    trozos.push(trozo);
+  }
+  return trozos.join(separador);
+}
+
+/**
+ * Dibuja el texto, la pista, el teclado y las cifras según el estado actual.
+ * @returns {void}
+ */
+function pintar() {
+  if (!$('configuracion').hidden) return;
+  const { keymap, tabla, recetas, linea, indice } = estado;
+  const esperado = linea[indice];
+  const receta = esperado ? recetas[esperado] : null;
+  const capas = keymap.layers;
+
+  $('texto').innerHTML = linea
+    ? [...linea].map((c, i) => `<span class="${i < indice ? 'hecho' : i === indice ? 'actual' + (estado.fallo ? ' fallo' : '') : ''}">${c === ' ' ? '␣' : c.replace('&', '&amp;').replace('<', '&lt;')}</span>`).join('')
+    : 'Este teclado no tiene teclas para esta lección.';
+
+  let pista = '';
+  if (receta) {
+    const nombre = (pos, capa) => etiqueta(capas[capa].keys[pos], tabla, capas) || '?';
+    const mantener = [];
+    if (receta.mantener != null) mantener.push(nombre(receta.mantener, 0));
+    if (receta.shift != null) mantener.push(nombre(receta.shift, 0));
+    if (receta.altgr != null) mantener.push(nombre(receta.altgr, 0));
+    pista = (mantener.length ? 'Mantén ' + mantener.map((m) => `<kbd class="mantener">${m}</kbd>`).join(' + ') + ' y pulsa ' : 'Pulsa ') +
+      `<kbd class="pulsar">${nombre(receta.pos, receta.capa).replace('<', '&lt;')}</kbd>`;
+    if (estado.fallo && estado.pulsaste) pista += `<span class="pulsaste">Pulsaste ${estado.pulsaste.replace('<', '&lt;')}</span>`;
+  }
+  $('pista').innerHTML = pista;
+
+  $('zonaTeclado').hidden = !estado.verTeclado;
+  $('ver').textContent = estado.verTeclado ? 'Ocultar teclado' : 'Mostrar teclado';
+  if (estado.verTeclado) {
+    const manual = estado.vista !== 'auto';
+    const verAltgr = estado.teclas.altgr || (manual ? estado.vista === 'altgr' : !!receta && receta.altgr != null);
+    const capaVista = estado.teclas.altgr || estado.vista === 'altgr' ? 0 : manual ? estado.vista : receta ? receta.capa : 0;
+    const nivel = (verAltgr ? 2 : 0) + (estado.teclas.shift ? 1 : 0);
+    const enVista = receta && receta.capa === capaVista;
+    dibujarTeclado($('teclado'), keymap.layout, $('zonaTeclado').clientWidth - 34, (pos) => {
+      const propia = capas[capaVista].keys[pos];
+      const heredada = capaVista > 0 && propia && propia.tr;
+      const origen = heredada ? capas[0].keys[pos] : propia;
+      const deNivel = nivel && origen.k && !origen.g && !origen.s && origen.k !== 'Space' && tabla[origen.k] ? tabla[origen.k][nivel] : null;
+      let clase = heredada || (verAltgr && !deNivel) ? 'heredada' : '';
+      if (enVista && pos === receta.pos) clase += estado.fallo ? ' fallo' : ' pulsar';
+      else if (receta && [receta.mantener, receta.shift, receta.altgr].includes(pos)) clase += ' mantener';
+      return { texto: deNivel ? (/^\p{Ll}$/u.test(deNivel) ? deNivel.toUpperCase() : deNivel) : etiqueta(origen, tabla, capas), clase };
+    });
+    const alcanzables = capas[0].keys.filter((a) => a.mo != null).map((a) => capas.findIndex((c) => c.id === a.mo)).filter((i) => i > 0);
+    const vistas = [['auto', 'Automático'], ...[...new Set([0, ...alcanzables])].map((i) => [i, capas[i].name || 'Capa ' + i])];
+    if (capas[0].keys.some((a) => a.k === 'AltRight') && Object.keys(ALTGR[estado.sistema]).length) vistas.push(['altgr', 'Español (AltGr)']);
+    const mostrada = verAltgr ? 'altgr' : capaVista;
+    $('capa').innerHTML = vistas.map(([v, n]) => `<button data-vista="${v}" class="${v === estado.vista ? 'activa' : ''}${v === mostrada ? ' vista' : ''}">${escapar(n)}</button>`).join('');
+  }
+
+  const total = estado.aciertos + estado.errores;
+  $('aciertos').textContent = estado.aciertos;
+  $('errores').textContent = estado.errores;
+  $('precision').textContent = total ? Math.round((estado.aciertos / total) * 100) + ' %' : '–';
+  $('ppm').textContent = estado.msActivos > 3000 ? Math.round(estado.aciertos / 5 / (estado.msActivos / 60000)) : '–';
+  const peores = Object.entries(estado.porCaracter).filter(([, d]) => d.e > 0 && d.a + d.e >= 5)
+    .sort((a, b) => tasaError(b[1]) - tasaError(a[1])).slice(0, 8);
+  $('debiles').innerHTML = peores.length
+    ? 'Donde más fallas: ' + peores.map(([c, d]) => `<code>${c === ' ' ? '␣' : c.replace('&', '&amp;').replace('<', '&lt;')} ${Math.round(tasaError(d) * 100)} %</code>`).join('')
+    : '';
+}
+
+/**
+ * Empieza una línea nueva de la lección activa.
+ * @returns {void}
+ */
+function nuevaLinea() {
+  estado.linea = generarLinea();
+  estado.indice = 0;
+  estado.inicioLinea = 0;
+  estado.fallo = false;
+  pintar();
+}
+
+/**
+ * Recalcula lo que depende del keymap o del idioma y reinicia la línea.
+ * @returns {void}
+ */
+function preparar() {
+  estado.tabla = tablaSistema(estado.sistema);
+  estado.recetas = calcularRecetas(estado.keymap, estado.tabla);
+  estado.cola = [];
+  estado.vista = 'auto';
+  nuevaLinea();
+}
+
+/**
+ * Muestra un mensaje bajo la barra.
+ * @param {string} mensaje - Texto a mostrar.
+ * @param {boolean} [esError] - Lo pinta como error.
+ * @returns {void}
+ */
+function avisar(mensaje, esError = false) {
+  $('estado').textContent = mensaje;
+  $('estado').className = esError ? 'error' : '';
+}
+
+/**
+ * Procesa una pulsación: cuenta acierto o error y avanza.
+ * @param {KeyboardEvent} evento - Pulsación recibida.
+ * @returns {void}
+ */
+function alPulsar(evento) {
+  const esperado = estado.linea[estado.indice];
+  if (!$('configuracion').hidden) return;
+  if (!esperado || evento.repeat || evento.metaKey || (evento.ctrlKey && !conAltgr(evento))) return;
+  if (['Shift', 'Control', 'Alt', 'AltGraph', 'Meta', 'CapsLock'].includes(evento.key)) return;
+  if (document.activeElement && ['SELECT', 'BUTTON'].includes(document.activeElement.tagName)) document.activeElement.blur();
+  evento.preventDefault();
+  const ahora = performance.now();
+  if (!estado.inicioLinea) estado.inicioLinea = ahora;
+  const dato = estado.porCaracter[esperado] || (estado.porCaracter[esperado] = { a: 0, e: 0 });
+
+  if (acierta(evento, esperado, estado.tabla)) {
+    estado.aciertos++;
+    dato.a++;
+    estado.fallo = false;
+    estado.indice++;
+    if (estado.indice >= estado.linea.length) {
+      estado.msActivos += ahora - estado.inicioLinea;
+      guardar('caracteres', estado.porCaracter);
+      nuevaLinea();
+      return;
+    }
+  } else {
+    estado.errores++;
+    dato.e++;
+    estado.fallo = true;
+    estado.pulsaste = evento.key.length === 1 ? (evento.key === ' ' ? '␣' : evento.key) : ESPECIALES[evento.code] || evento.key;
+  }
+  pintar();
+}
+
+const cfg = Object.assign({ paso: 0, reposo: {}, nota: {}, uso: null, tildes: null, esc: null }, leerGuardado('config', {}));
+let accionesCfg = { opciones: [], alClic: null };
+
+/**
+ * Pasos del asistente según lo respondido hasta ahora.
+ * @returns {Array<{t: string, mano?: string, pos?: number, dedo?: string, id?: string}>} Pasos en orden.
+ */
+function pasosCfg() {
+  const pasos = [{ t: 'intro' }, { t: 'reposo', mano: 'L' }, { t: 'reposo', mano: 'R' }];
+  for (const mano of ['L', 'R']) {
+    const reposo = cfg.reposo[mano] ?? PULGARES[mano][1];
+    for (const pos of PULGARES[mano]) if (pos !== reposo) pasos.push({ t: 'nota', pos, mano, dedo: 'pulgar' });
+  }
+  for (const mano of ['L', 'R']) for (const pos of EXTERIOR[mano]) pasos.push({ t: 'nota', pos, mano, dedo: 'exterior' });
+  pasos.push({ t: 'pregunta', id: 'uso' }, { t: 'pregunta', id: 'tildes' }, { t: 'pregunta', id: 'esc' }, { t: 'resultado' });
+  return pasos;
+}
+
+/**
+ * Función que cumple hoy una tecla de BASE.
+ * @param {number} pos - Posición de la tecla.
+ * @returns {string|null} Identificador de función ('space', 'nav'…) o null si es otra cosa.
+ */
+function funcionEn(pos) {
+  const capas = estado.keymap.layers;
+  const a = capas[0].keys[pos];
+  if (a.mo != null && !a.k) return capas[1] && a.mo === capas[1].id ? 'nav' : capas[2] && a.mo === capas[2].id ? 'sym' : null;
+  return ID_TECLA[a.k] || null;
+}
+
+/**
+ * Funciones a repartir, con su uso estimado (fracción de pulsaciones) y si se pulsan (0) o se mantienen (1).
+ * @param {string|null} manoNav - Mano obligada para NAV (SYM va a la contraria); null = sin restricción.
+ * @param {boolean} shiftPulgar - true: un Shift en un pulgar; false: un Shift en cada meñique.
+ * @returns {object[]} Funciones con peso mayor que cero.
+ */
+function funcionesCfg(manoNav, shiftPulgar) {
+  const capas = estado.keymap.layers;
+  const otra = manoNav ? (manoNav === 'L' ? 'R' : 'L') : undefined;
+  const lista = [
+    { id: 'space', n: 'Espacio', c: '␣', w: 0.17, t: 0, solo: 'pulgar', fijo: true },
+    { id: 'bksp', n: 'Backspace', c: '⌫', w: 0.06, t: 0 },
+    { id: 'nav', n: 'Capa ' + (capas[1]?.name || 'NAV'), c: capas[1]?.name || 'NAV', w: 0.04, t: 1, solo: 'pulgar', fijo: true, mano: manoNav || undefined },
+    { id: 'sym', n: 'Capa ' + (capas[2]?.name || 'SYM'), c: capas[2]?.name || 'SYM', w: { prosa: 0.03, ambos: 0.05, codigo: 0.08 }[cfg.uso], t: 1, solo: 'pulgar', fijo: true, mano: otra },
+    ...(shiftPulgar
+      ? [{ id: 'shift', n: 'Shift', c: '⇧', w: 0.04, t: 1, solo: 'pulgar', fijo: true }]
+      : [{ id: 'shiftL', n: 'Shift izquierdo', c: '⇧', w: 0.02, t: 1, solo: 'exterior', mano: 'L', fijo: true },
+         { id: 'shiftR', n: 'Shift derecho', c: '⇧', w: 0.02, t: 1, solo: 'exterior', mano: 'R', fijo: true }]),
+    { id: 'ctrl', n: 'Ctrl', c: 'Ctrl', w: 0.03, t: 1 },
+    { id: 'enter', n: 'Enter', c: '⏎', w: 0.02, t: 0 },
+    { id: 'tab', n: 'Tab', c: 'Tab', w: cfg.uso === 'prosa' ? 0.01 : 0.02, t: 0 },
+    { id: 'esc', n: 'Esc', c: 'Esc', w: cfg.esc ? 0.03 : 0.005, t: 0 },
+    { id: 'altgr', n: 'AltGr', c: 'AltGr', w: { altgr: 0.02, latam: 0.005, comilla: 0 }[cfg.tildes], t: 1 },
+    { id: 'win', n: 'Win', c: 'Win', w: 0.003, t: 1 },
+  ];
+  return lista.filter((f) => f.w > 0);
+}
+
+/**
+ * Calcula la distribución de menor esfuerzo y la compara con la actual.
+ * @returns {{actual: number, donde: object, coste: number, funcs: object[], sitio: object, shiftPulgar: boolean}} Resultado.
+ * @flow
+ * 1. Convierte las notas del usuario en esfuerzo por tecla
+ * 2. Evalúa la distribución actual con el mismo modelo
+ * 3. Resuelve las cuatro variantes (NAV a cada mano × Shift en pulgar o meñiques) y se queda con la mejor
+ */
+function proponer() {
+  const slots = [];
+  for (const mano of ['L', 'R']) {
+    for (const pos of PULGARES[mano]) slots.push({ pos, mano, tipo: 'pulgar', c: ESFUERZO.pulgar[pos === cfg.reposo[mano] ? 0 : cfg.nota[pos]] });
+    for (const pos of EXTERIOR[mano]) slots.push({ pos, mano, tipo: 'exterior', c: ESFUERZO.exterior[cfg.nota[pos]] });
+  }
+  const donde = {};
+  for (const s of slots) {
+    let id = funcionEn(s.pos);
+    if (id === 'shift' && s.tipo === 'exterior') id = 'shift' + s.mano;
+    if (id && !donde[id]) donde[id] = s;
+  }
+  const evaluar = (funcs, sitio) => funcs.reduce((t, f) => t + f.w * 100 * (sitio[f.id] ? sitio[f.id].c[f.t] : SIN_SITIO), 0);
+  let mejor = null;
+  for (const manoNav of ['L', 'R']) {
+    for (const shiftPulgar of [true, false]) {
+      const funcs = funcionesCfg(manoNav, shiftPulgar);
+      const sitio = resolver(funcs, slots, donde);
+      const coste = evaluar(funcs, sitio);
+      if (!mejor || coste < mejor.coste - 1e-9) mejor = { coste, funcs, sitio, shiftPulgar };
+    }
+  }
+  return { actual: evaluar(funcionesCfg(null, !!donde.shift), donde), donde, ...mejor };
+}
+
+/**
+ * Dibuja una mano semitransparente con las yemas sobre la fila central.
+ * @param {string} lado - 'L' o 'R'.
+ * @param {number} u - Píxeles por unidad de tecla.
+ * @param {number} pulgar - Tecla sobre la que se dibuja el pulgar.
+ * @param {number|null} menique - Tecla a la que se estira el meñique (null = fila central).
+ * @returns {string} Grupo SVG.
+ */
+function dibujarMano(lado, u, pulgar, menique) {
+  const layout = estado.keymap.layout;
+  const c = (pos) => centro(layout[pos], u);
+  const base = DEDOS[lado].map(c);
+  const puntas = base.slice();
+  if (menique != null) puntas[0] = c(menique);
+  const px = base.reduce((t, p) => t + p[0], 0) / 4;
+  const py = Math.max(...base.map((p) => p[1])) + 2.7 * u;
+  const hacia = lado === 'L' ? 1 : -1;
+  const dedo = (x1, y1, [x2, y2], grosor) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${grosor * u}"/>`;
+  return `<g class="mano"><ellipse cx="${px}" cy="${py}" rx="${1.6 * u}" ry="${1.2 * u}" stroke="none"/>` +
+    puntas.map((p, i) => dedo(base[i][0] * 0.75 + px * 0.25, py - 0.8 * u, p, i === 0 ? 0.5 : 0.6)).join('') +
+    dedo(px + hacia * 1.2 * u, py - 0.5 * u, c(pulgar), 0.7) + '</g>';
+}
+
+/**
+ * Pinta el paso actual de «Tu configuración».
+ * @returns {void}
+ */
+function pintarAsistente() {
+  const capas = estado.keymap.layers;
+  if (capas[0].keys.length !== 42 || capas.length < 3) {
+    $('asistente').innerHTML = '<p>Esta sección necesita un Toucan de 42 teclas con sus capas leídas. Pulsa «Leer mi teclado» primero.</p>';
+    return;
+  }
+  const pasos = pasosCfg();
+  cfg.paso = Math.max(0, Math.min(cfg.paso, pasos.length - 1));
+  guardar('config', cfg);
+  const paso = pasos[cfg.paso];
+  const lado = { L: 'izquierda', R: 'derecha' };
+  const avanzar = () => { cfg.paso++; pintarAsistente(); };
+  const textoBase = (pos) => etiqueta(capas[0].keys[pos], estado.tabla, capas);
+  let titulo = '', texto = '', extra = '', manos = [], alClic = null, opciones = [];
+  let porTecla = (pos) => ({ texto: textoBase(pos), clase: 'heredada' });
+  let conTeclado = true;
+
+  if (paso.t === 'intro') {
+    titulo = 'Medir tu alcance';
+    texto = 'Voy a medir qué teclas alcanzas sin esfuerzo y calcular con eso dónde conviene cada función. Siéntate como escribes normalmente, apoya los índices en F y J y relaja las manos. Responde lo que sientes, no lo que crees que debería ser. Durante las pruebas no importa lo que escriban las teclas; si se abre el menú de Windows, ciérralo.';
+    manos = ['L', 'R'].map((m) => ({ lado: m, pulgar: cfg.reposo[m] ?? PULGARES[m][1], menique: null }));
+    opciones = [['Empezar', avanzar]];
+  } else if (paso.t === 'reposo') {
+    titulo = `Pulgar de la mano ${lado[paso.mano]} en reposo`;
+    texto = `Coloca la mano ${lado[paso.mano]} en la fila central y relájala. Sin mirar el teclado, deja caer el pulgar. Ahora mira: ¿sobre qué tecla quedó? Haz clic en ella en el dibujo.`;
+    porTecla = (pos) => ({ texto: textoBase(pos), clase: PULGARES[paso.mano].includes(pos) ? 'opcion' + (cfg.reposo[paso.mano] === pos ? ' pulsar' : '') : 'heredada' });
+    manos = [{ lado: paso.mano, pulgar: cfg.reposo[paso.mano] ?? PULGARES[paso.mano][1], menique: null }];
+    alClic = (pos) => { if (PULGARES[paso.mano].includes(pos)) { cfg.reposo[paso.mano] = pos; avanzar(); } };
+  } else if (paso.t === 'nota') {
+    const esPulgar = paso.dedo === 'pulgar';
+    titulo = `${esPulgar ? 'Pulgar' : 'Meñique'} de la mano ${lado[paso.mano]}: tecla marcada`;
+    texto = esPulgar
+      ? 'Con los cuatro dedos quietos en la fila central, pulsa la tecla marcada con el pulgar varias veces. Después mantenla pulsada y, con esa misma mano, pulsa una por una las cuatro teclas de la fila central.'
+      : `Con el índice quieto en ${paso.mano === 'L' ? 'F' : 'J'}, pulsa la tecla marcada con el meñique varias veces. Después mantenla pulsada y pulsa una letra con otro dedo de esa misma mano.`;
+    porTecla = (pos) => ({ texto: textoBase(pos), clase: pos === paso.pos ? 'pulsar' : 'heredada' });
+    manos = [{ lado: paso.mano, pulgar: esPulgar ? paso.pos : cfg.reposo[paso.mano], menique: esPulgar ? null : paso.pos }];
+    const elegida = (n) => (cfg.nota[paso.pos] === n ? ' (tu respuesta anterior)' : '');
+    const poner = (n) => () => { cfg.nota[paso.pos] = n; avanzar(); };
+    opciones = [
+      ['Cómodo: la mano no se mueve' + elegida(1), poner(1)],
+      ['Alcanzable: noto el estiramiento' + elegida(2), poner(2)],
+      ['Forzado: muevo la mano o se me levanta algún dedo' + elegida(3), poner(3)],
+    ];
+  } else if (paso.t === 'pregunta') {
+    conTeclado = false;
+    const poner = (valor) => () => { cfg[paso.id] = valor; avanzar(); };
+    if (paso.id === 'uso') {
+      titulo = '¿Qué escribes más?';
+      opciones = [['Texto: correos, documentos, chat', poner('prosa')], ['Texto y código a partes iguales', poner('ambos')], ['Código o fórmulas con muchos símbolos', poner('codigo')]];
+    } else if (paso.id === 'tildes') {
+      titulo = '¿Cómo escribes las tildes y la ñ?';
+      opciones = [['Windows en inglés internacional: comilla y luego la vocal', poner('comilla')], ['Windows en inglés internacional: AltGr más la letra', poner('altgr')], ['Windows en español: tienen tecla propia', poner('latam')]];
+    } else {
+      titulo = '¿Usas Vim u otro programa donde Esc se pulsa constantemente?';
+      opciones = [['No', poner(false)], ['Sí', poner(true)]];
+    }
+  } else {
+    const r = proponer();
+    const porPos = {};
+    for (const f of r.funcs) if (r.sitio[f.id]) porPos[r.sitio[f.id].pos] = f;
+    const familia = (id) => (id ? id.replace(/^shift.*/, 'shift') : null);
+    const reasignables = [...PULGARES.L, ...PULGARES.R, ...EXTERIOR.L, ...EXTERIOR.R];
+    porTecla = (pos) => {
+      if (!reasignables.includes(pos)) return { texto: textoBase(pos), clase: 'heredada' };
+      const f = porPos[pos];
+      return { texto: f ? f.c : '·', clase: familia(f?.id) !== familia(funcionEn(pos)) ? 'cambio' : '' };
+    };
+    const mejora = r.actual > 0 ? Math.round((1 - r.coste / r.actual) * 100) : 0;
+    const ahora = (f) => {
+      const sitios = f.id.startsWith('shift') ? [r.donde.shift, r.donde.shiftL, r.donde.shiftR] : [r.donde[f.id]];
+      return sitios.filter(Boolean).map((s) => NOMBRE_POS[s.pos]).join(' + ') || 'no está en BASE';
+    };
+    const filas = r.funcs.slice().sort((a, b) => b.w - a.w).map((f) => {
+      const s = r.sitio[f.id];
+      return `<tr><td>${escapar(f.n)}</td><td class="num">${(f.w * 100).toFixed(1)} %</td><td>${ahora(f)}</td><td>${s ? NOMBRE_POS[s.pos] : 'a una capa'}</td><td class="num">${(f.w * 100 * (s ? s.c[f.t] : SIN_SITIO)).toFixed(1)}</td></tr>`;
+    }).join('');
+
+    const manoDeCapa = (i) => {
+      let izq = 0, der = 0;
+      capas[i].keys.forEach((a, pos) => {
+        if (pos >= 36 || !a.k || (ESPECIALES[a.k] && !a.k.startsWith('Arrow'))) return;
+        const col = pos % 12;
+        if (col >= 1 && col <= 5) izq++; else if (col >= 6 && col <= 10) der++;
+      });
+      return izq === der ? null : izq > der ? 'L' : 'R';
+    };
+    const notas = [];
+    [['nav', 1], ['sym', 2]].forEach(([id, i]) => {
+      if (r.sitio[id].mano === manoDeCapa(i)) notas.push(`La capa ${escapar(capas[i].name || i)} se mantiene con el pulgar de la mano ${lado[r.sitio[id].mano]} y la mayoría de sus teclas están en esa misma mano. Muévelas a la mano contraria: mantener con una mano y pulsar con la otra es más rápido.`);
+    });
+    [['nav', 1], ['sym', 2]].forEach(([id, i]) => {
+      const tapados = r.funcs.filter((f) => f.t === 0 && r.sitio[f.id]?.tipo === 'pulgar' && r.sitio[f.id].mano === r.sitio[id].mano).map((f) => f.n);
+      if (tapados.length) notas.push(`Mientras mantienes ${escapar(capas[i].name || 'la capa ' + i)} con el pulgar de la mano ${lado[r.sitio[id].mano]}, ese pulgar no puede pulsar a la vez: ${escapar(tapados.join(', '))}. Lo que necesites dentro de esa capa, repítelo en una tecla de la otra mano.`);
+    });
+    if (cfg.tildes === 'comilla') notas.push('AltGr no entra en el cálculo: con tu forma de escribir tildes no lo usas.');
+    notas.push(r.shiftPulgar
+      ? 'Un solo Shift en el pulgar sirve para las dos manos, porque el pulgar se mueve independiente de los dedos.'
+      : 'Con un Shift en cada meñique, usa siempre el de la mano contraria a la letra.');
+    const fuera = r.funcs.filter((f) => !r.sitio[f.id]).map((f) => f.n);
+    if (fuera.length) notas.push(`No ganan sitio en BASE: ${escapar(fuera.join(', '))}. Ponlas en la capa ${escapar(capas[1].name || 'NAV')}.`);
+    notas.push('Para aplicarlo: cambia BASE en zmk.studio, deja «Transparent» esas mismas teclas en las demás capas, guarda y vuelve a pulsar «Leer mi teclado».');
+
+    titulo = 'Distribución propuesta';
+    texto = 'Las teclas con borde morado cambian respecto a tu BASE actual; un punto indica una tecla que queda libre. Las letras no se tocan.';
+    extra = `<div class="resumen">Esfuerzo por cada 100 pulsaciones: actual <b>${r.actual.toFixed(1)}</b> → propuesta <b>${r.coste.toFixed(1)}</b> (${mejora > 0 ? '−' + mejora + ' %' : 'sin mejora'})</div>` +
+      (mejora < 3 ? '<p>Tu distribución actual ya está en el óptimo de este modelo, o muy cerca.</p>' : '') +
+      `<table><tr><th>Función</th><th class="num">Uso estimado</th><th>Ahora</th><th>Propuesta</th><th class="num">Esfuerzo</th></tr>${filas}</table>` +
+      `<ul class="notas">${notas.map((n) => `<li>${n}</li>`).join('')}</ul>` +
+      '<p class="modelo">Modelo: esfuerzo = uso estimado × dificultad que declaraste para cada tecla; mantener pesa más que pulsar, y una función fuera de BASE cuenta 5. Reposo 1; cómodo 1,3–2; alcanzable 2–4; forzado 4–9. Los porcentajes de uso son estimaciones generales, no medidas tuyas. A igual esfuerzo se conserva la posición actual. El cálculo prueba NAV en cada mano y Shift en pulgar o en meñiques, y muestra la combinación de menor esfuerzo.</p>';
+    opciones = [['Repetir la medición', () => { Object.assign(cfg, { paso: 0, reposo: {}, nota: {} }); pintarAsistente(); }]];
+  }
+
+  accionesCfg = { opciones, alClic };
+  $('asistente').innerHTML = `<div class="progreso">Paso ${cfg.paso + 1} de ${pasos.length}</div><h3>${titulo}</h3><p>${texto}</p>` +
+    (conTeclado ? '<div id="tecladoCfg"></div>' : '') + extra +
+    `<div class="opciones">${opciones.map((o, i) => `<button data-op="${i}">${o[0]}</button>`).join('')}</div>` +
+    `<div class="pie">${cfg.paso ? '<button data-ir="atras">Atrás</button>' : ''}<button data-ir="cerrar">Volver a practicar</button></div>`;
+  if (!conTeclado) return;
+  const caja = $('tecladoCfg');
+  const u = dibujarTeclado(caja, estado.keymap.layout, $('asistente').clientWidth - 2, porTecla);
+  if (manos.length) {
+    caja.style.marginBottom = 2.4 * u + 'px';
+    caja.insertAdjacentHTML('beforeend', `<svg>${manos.map((m) => dibujarMano(m.lado, u, m.pulgar, m.menique)).join('')}</svg>`);
+  }
+}
+
+/**
+ * Abre o cierra la sección «Tu configuración».
+ * @param {boolean} abrir - true para mostrar el asistente, false para volver a practicar.
+ * @returns {void}
+ */
+function alternarConfiguracion(abrir) {
+  $('configuracion').hidden = !abrir;
+  $('practica').hidden = abrir;
+  $('config').textContent = abrir ? 'Volver a practicar' : 'Tu configuración';
+  if (abrir) pintarAsistente(); else pintar();
+}
+
+$('config').addEventListener('click', () => alternarConfiguracion($('configuracion').hidden));
+$('asistente').addEventListener('click', (e) => {
+  const boton = e.target.closest('button');
+  const teclaPulsada = e.target.closest('.tecla.opcion');
+  if (boton?.dataset.op) accionesCfg.opciones[boton.dataset.op][1]();
+  else if (boton?.dataset.ir === 'atras') { cfg.paso--; pintarAsistente(); }
+  else if (boton?.dataset.ir === 'cerrar') alternarConfiguracion(false);
+  else if (teclaPulsada && accionesCfg.alClic) accionesCfg.alClic(Number(teclaPulsada.dataset.pos));
+});
+
+$('leccion').innerHTML = LECCIONES.map(([id, nombre]) => `<option value="${id}">${nombre}</option>`).join('');
+$('leccion').value = estado.leccion;
+$('sistema').value = estado.sistema;
+
+$('leccion').addEventListener('change', (e) => {
+  if (e.target.value === 'propio') {
+    const texto = prompt('Pega el texto que quieres practicar:', estado.propio);
+    if (texto) { estado.propio = texto; guardar('propio', texto); }
+  }
+  estado.leccion = e.target.value;
+  estado.cola = [];
+  guardar('leccion', estado.leccion);
+  e.target.blur();
+  nuevaLinea();
+});
+$('sistema').addEventListener('change', (e) => {
+  estado.sistema = e.target.value;
+  guardar('sistema', estado.sistema);
+  e.target.blur();
+  preparar();
+});
+$('ver').addEventListener('click', () => { estado.verTeclado = !estado.verTeclado; guardar('ver', estado.verTeclado); pintar(); });
+$('reiniciar').addEventListener('click', () => {
+  if (!confirm('¿Borrar todas las estadísticas guardadas?')) return;
+  Object.assign(estado, { porCaracter: {}, aciertos: 0, errores: 0, msActivos: 0 });
+  guardar('caracteres', {});
+  nuevaLinea();
+});
+$('leer').addEventListener('click', async () => {
+  try {
+    avisar('Elige el puerto del teclado en la ventana del navegador…');
+    estado.keymap = await leerTeclado(avisar);
+    guardar('keymap', estado.keymap);
+    avisar(`Listo: ${estado.keymap.layers.length} capas leídas (${estado.keymap.layers.map((c) => c.name || c.id).join(', ')}).`);
+    preparar();
+  } catch (error) {
+    if (error.name === 'NotFoundError') avisar('');
+    else avisar(error.name === 'NetworkError' ? 'No se pudo abrir el puerto. Cierra la pestaña de zmk.studio y vuelve a intentarlo.' : error.message, true);
+  }
+});
+$('guardar').addEventListener('click', () => {
+  const enlace = document.createElement('a');
+  enlace.href = URL.createObjectURL(new Blob([JSON.stringify(estado.keymap)], { type: 'application/json' }));
+  enlace.download = 'toucan-keymap.json';
+  enlace.click();
+  URL.revokeObjectURL(enlace.href);
+});
+$('cargar').addEventListener('click', () => $('archivo').click());
+$('archivo').addEventListener('change', async (e) => {
+  try {
+    const leido = JSON.parse(await e.target.files[0].text());
+    if (!leido.layers?.[0]?.keys?.length || leido.layout?.length !== leido.layers[0].keys.length) throw new Error();
+    estado.keymap = leido;
+    guardar('keymap', leido);
+    avisar('Configuración cargada.');
+    preparar();
+  } catch { avisar('Ese archivo no es una configuración del entrenador.', true); }
+  e.target.value = '';
+});
+/**
+ * Cambia la capa que muestra el dibujo; repetir la misma vuelve a «Automático».
+ * @param {number|string} vista - Índice de capa, 'altgr' o 'auto'.
+ * @returns {void}
+ */
+function elegirVista(vista) {
+  estado.vista = estado.vista === vista ? 'auto' : vista;
+  pintar();
+}
+
+/**
+ * Sigue si Shift o AltGr están mantenidos para mostrar lo que escribirían las teclas.
+ * @param {KeyboardEvent} [evento] - Pulsación o suelta; sin evento se dan por soltadas.
+ * @returns {void}
+ */
+function alCambiarModificadores(evento) {
+  const teclas = { shift: !!evento?.shiftKey, altgr: !!evento && conAltgr(evento) };
+  if (teclas.shift === estado.teclas.shift && teclas.altgr === estado.teclas.altgr) return;
+  estado.teclas = teclas;
+  pintar();
+}
+
+$('capa').addEventListener('click', (e) => {
+  const boton = e.target.closest('button');
+  if (!boton) return;
+  const vista = boton.dataset.vista;
+  elegirVista(vista === 'auto' || vista === 'altgr' ? vista : Number(vista));
+});
+$('teclado').addEventListener('click', (e) => {
+  const pulsada = e.target.closest('.tecla');
+  if (!pulsada) return;
+  const capas = estado.keymap.layers;
+  const asignacion = capas[0].keys[pulsada.dataset.pos];
+  if (asignacion.k === 'AltRight') elegirVista('altgr');
+  else if (asignacion.mo != null && capas.some((c, i) => i > 0 && c.id === asignacion.mo)) elegirVista(capas.findIndex((c) => c.id === asignacion.mo));
+});
+document.addEventListener('keydown', alCambiarModificadores);
+document.addEventListener('keyup', alCambiarModificadores);
+window.addEventListener('blur', () => alCambiarModificadores());
+document.addEventListener('keydown', alPulsar);
+window.addEventListener('resize', () => ($('configuracion').hidden ? pintar() : pintarAsistente()));
+if (!leerGuardado('keymap', null)) avisar('Usando el keymap de fábrica. Pulsa «Leer mi teclado» para cargar tus capas reales.');
+preparar();
+
+// #endregion
+</script>
+</body>
+</html>
